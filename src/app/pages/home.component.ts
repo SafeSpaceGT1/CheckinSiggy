@@ -3,6 +3,7 @@ import { Component, computed, inject } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { format, startOfWeek } from "date-fns";
 import {
+  CalendarDays,
   ChevronRight,
   Circle,
   CircleCheck,
@@ -18,6 +19,9 @@ import { SkeletonModule } from "primeng/skeleton";
 import { MoodService } from "../core/mood.service";
 import { JournalService } from "../core/journal.service";
 import { AuthService } from "../core/auth.service";
+import { TherapyService } from "../core/therapy.service";
+import { RoleService } from "../core/role.service";
+import { ClientsService } from "../core/clients.service";
 import { computeStreaks, dayKey } from "../core/streak";
 import { PageContainerComponent } from "../layout/page-container.component";
 
@@ -85,6 +89,22 @@ const MOOD_LABELS: Record<number, string> = {
           </div>
         }
       </section>
+
+      @if (nextSession(); as session) {
+        <section class="mt-6 animate-fade-in-up" aria-label="Upcoming therapy session">
+          <a routerLink="/therapy-sessions" class="card-interactive flex items-center gap-3 border border-primary/20 bg-gradient-primary-soft p-4 sm:gap-4 sm:p-5">
+            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card/80 text-primary"><lucide-icon [img]="icons.CalendarDays" [size]="23" /></span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[11px] font-semibold uppercase tracking-wider text-primary">Your next therapy session</span>
+              <span class="mt-1 block text-sm font-medium">{{ nextSessionName() }} · {{ sessionLabel(session.starts_at) }}</span>
+              <span class="mt-1 block text-xs text-muted-foreground">{{ session.duration_minutes }} min · {{ timezone }} · {{ role.isClinician() ? 'Read shared pre-session notes' : 'Make space for what is on your mind' }}</span>
+            </span>
+            <lucide-icon [img]="icons.ChevronRight" [size]="18" class="shrink-0 text-primary" />
+          </a>
+        </section>
+      } @else if (therapy.sessionsQuery.isError()) {
+        <div class="mt-6"><app-query-error message="Couldn't load your next therapy session" (retry)="therapy.sessionsQuery.refetch()" /></div>
+      }
 
       <section class="mt-8 animate-fade-in-up" style="animation-delay: 120ms" aria-label="Quick actions">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -166,7 +186,7 @@ const MOOD_LABELS: Record<number, string> = {
   `,
 })
 export class HomeComponent {
-  readonly icons = { CircleCheck, Circle, Flame, NotebookPen, ChevronRight, SmilePlus };
+  readonly icons = { CalendarDays, CircleCheck, Circle, Flame, NotebookPen, ChevronRight, SmilePlus };
 
   readonly tiles = [
     {
@@ -200,6 +220,17 @@ export class HomeComponent {
   ];
 
   private readonly auth = inject(AuthService);
+  readonly therapy = inject(TherapyService);
+  readonly role = inject(RoleService);
+  private readonly clients = inject(ClientsService);
+  readonly timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  readonly nextSession = computed(() => this.therapy.upcomingSessions()[0] ?? null);
+  readonly nextSessionName = computed(() => {
+    const session = this.nextSession();
+    const connection = this.therapy.connectionsQuery.data()?.find((item) => item.id === session?.connection_id);
+    return connection ? this.role.isClinician() ? this.clients.clientsById().get(connection.client_id)?.name ?? "Your client" : connection.therapist_name : "Therapy session";
+  });
+  sessionLabel(iso: string): string { return format(new Date(iso), "EEE, MMM d · h:mm a"); }
 
   readonly todayLabel = format(new Date(), "EEEE, MMMM d");
   readonly period = (() => {

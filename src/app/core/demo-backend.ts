@@ -1,7 +1,8 @@
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { DEMO_AUTH_KEY, DEMO_DATA_KEY, DEMO_USER_ID } from "./demo-session";
-import { DEMO_TABLES, seedDemoData, type DemoDatabase, type DemoRow, type DemoTable } from "./demo-data";
+import { DEMO_TABLES, DEMO_THERAPY_TABLES, seedDemoData, seedDemoTherapyData, type DemoDatabase, type DemoRow, type DemoTable } from "./demo-data";
 import { localSentiment } from "./sentiment-local";
+import { validatePreSessionNote, validateSessionInput } from "./therapy.types";
 
 // .invalid is reserved and cannot identify a real project. Every SDK HTTP request
 // is handled below; unsupported routes fail locally and never call global fetch.
@@ -44,6 +45,16 @@ function readDatabase(): DemoDatabase {
     if (parsed && typeof parsed === "object" && "version" in parsed && parsed.version === 1 && "rows" in parsed) {
       const rows = parsed.rows as DemoDatabase;
       if (rows && DEMO_TABLES.every((table) => Array.isArray(rows[table]))) return rows;
+      const originalTables = DEMO_TABLES.filter((table) => !isTherapyTable(table));
+      if (rows && originalTables.every((table) => Array.isArray(rows[table])) &&
+          DEMO_THERAPY_TABLES.every((table) => rows[table] === undefined || Array.isArray(rows[table]))) {
+        const missing = DEMO_THERAPY_TABLES.filter((table) => rows[table] === undefined);
+        for (const table of missing) rows[table] = [];
+        // Upgrade older tabs in place, retaining all edits and deleted client records.
+        if (missing.length === DEMO_THERAPY_TABLES.length) seedDemoTherapyData(rows);
+        saveDatabase(rows);
+        return rows;
+      }
     }
   } catch { /* Invalid or unavailable demo storage starts a fresh fictional set. */ }
   const rows = seedDemoData();
@@ -60,6 +71,166 @@ const response = (body: unknown, status = 200, extra: Record<string, string> = {
 const failure = (message: string, status = 400, code = "DEMO_UNSUPPORTED") => response({ message, code }, status);
 const ownerColumn = (table: DemoTable) => table === "clients" || table === "soap_notes" ? "therapist_id" : "user_id";
 const isTable = (value: string): value is DemoTable => (DEMO_TABLES as readonly string[]).includes(value);
+const isTherapyTable = (value: DemoTable) => (DEMO_THERAPY_TABLES as readonly string[]).includes(value);
+
+function canReadRow(table: DemoTable, row: DemoRow, rows: DemoDatabase): boolean {
+  const clinician = storage.getItem("siggy:demo:role") === "clinician";
+  if (table === "therapy_connections") {
+    return clinician ? row['therapist_id'] === DEMO_USER_ID && !row['revoked_at'] : row['user_id'] === DEMO_USER_ID;
+  }
+  if (table === "therapy_sessions") {
+    return clinician ? row['therapist_id'] === DEMO_USER_ID && rows.therapy_connections.some((connection) =>
+      connection['id'] === row['connection_id'] && !connection['revoked_at']) : row['user_id'] === DEMO_USER_ID;
+  }
+  if (table === "therapy_connection_invites") return false;
+  if (table === "pre_session_notes") {
+    if (!clinician) return row['user_id'] === DEMO_USER_ID;
+    const appointment = rows.therapy_sessions.find((session) => session['id'] === row['session_id']);
+    return row['status'] === "submitted" && rows.therapy_connections.some((connection) =>
+      connection['id'] === appointment?.['connection_id'] && connection['therapist_id'] === DEMO_USER_ID && !connection['revoked_at']);
+  }
+  return row[ownerColumn(table)] === DEMO_USER_ID;
+}
+
+/** The same RPC boundary as live therapy data, implemented entirely inside this tab. */
+function therapyRpc(name: string, payload: DemoRow, rows: DemoDatabase): Response | null {
+  const names = ["create_therapy_invite", "preview_therapy_invite", "accept_therapy_invite", "revoke_therapy_connection",
+    "save_therapy_session", "cancel_therapy_session", "save_pre_session_note", "mark_pre_session_note_reviewed"];
+  if (!names.includes(name)) return null;
+  const now = Date.now();
+  const timestamp = new Date(now).toISOString();
+  const connectionFor = (id: unknown, includeRevoked = false): DemoRow => {
+    const connection = rows.therapy_connections.find((row) => row['id'] === id && (includeRevoked || !row['revoked_at']) &&
+      (row['therapist_id'] === DEMO_USER_ID || row['user_id'] === DEMO_USER_ID));
+    if (!connection) throw new Error("This therapy connection is no longer active.");
+    return connection;
+  };
+  const sessionFor = (id: unknown): { appointment: DemoRow; connection: DemoRow } => {
+    const appointment = rows.therapy_sessions.find((row) => row['id'] === id);
+    if (!appointment) throw new Error("This therapy session was not found.");
+    return { appointment, connection: connectionFor(appointment['connection_id']) };
+  };
+  const activeFuture = (appointment: DemoRow) => {
+    if (appointment['status'] !== "scheduled" || Date.parse(appointment['starts_at']) <= now) {
+      throw new Error("Choose an active future session.");
+    }
+  };
+  const currentInvite = () => {
+    const invite = rows.therapy_connection_invites.find((row) => row['token'] === payload['p_token'] && Date.parse(row['expires_at']) > now);
+    const connection = invite && rows.therapy_connections.find((row) => row['id'] === invite['connection_id'] && !row['revoked_at'] && !row['user_id']);
+    if (!invite || !connection) throw new Error("This invitation has expired or is no longer available.");
+    return { invite, connection };
+  };
+  const nextNoteRevision = (note: DemoRow | undefined): string => {
+    const previous = note ? Date.parse(note['updated_at']) : NaN;
+    return new Date(Math.max(now, Number.isFinite(previous) ? previous + 1 : now)).toISOString();
+  };
+  const requireNoteRevision = (note: DemoRow | undefined) => {
+    if ((payload['p_expected_updated_at'] ?? null) !== (note?.['updated_at'] ?? null)) {
+      throw Object.assign(new Error("This note changed. Reload the saved note before editing."), { code: "40001" });
+    }
+  };
+  const persist = (value: DemoRow) => { saveDatabase(rows); return response(value); };
+  try {
+    switch (name) {
+      case "create_therapy_invite": {
+        const client = rows.clients.find((row) => row['id'] === payload['p_client_id'] && row['therapist_id'] === DEMO_USER_ID);
+        if (!client) throw new Error("Choose one of your existing clients.");
+        const therapistName = String(payload['p_therapist_name'] ?? "").trim();
+        if (!therapistName || therapistName.length > 120) throw new Error("Enter a therapist name of 120 characters or fewer.");
+        let connection = rows.therapy_connections.find((row) => row['client_id'] === client['id'] && row['therapist_id'] === DEMO_USER_ID);
+        if (connection?.['revoked_at']) throw new Error("This connection has been revoked and cannot be reactivated.");
+        if (connection?.['user_id']) throw new Error("This client is already connected.");
+        if (!connection) {
+          connection = { id: crypto.randomUUID(), therapist_id: DEMO_USER_ID, client_id: client['id'], user_id: null,
+            therapist_name: therapistName, created_at: timestamp, revoked_at: null };
+          rows.therapy_connections.push(connection);
+        } else connection['therapist_name'] = therapistName;
+        const invite = { connection_id: connection['id'], token: crypto.randomUUID(),
+          expires_at: new Date(now + 7 * 86400000).toISOString(), created_at: timestamp };
+        rows.therapy_connection_invites = [...rows.therapy_connection_invites.filter((row) => row['connection_id'] !== connection!['id']), invite];
+        return persist({ connection, token: invite.token, expires_at: invite.expires_at });
+      }
+      case "preview_therapy_invite": {
+        const { invite, connection } = currentInvite();
+        return response({ therapist_name: connection['therapist_name'], expires_at: invite['expires_at'] });
+      }
+      case "accept_therapy_invite": {
+        const { invite, connection } = currentInvite();
+        // Demo personas intentionally share an ID; live RPCs reject self-connections.
+        connection['user_id'] = DEMO_USER_ID;
+        rows.therapy_connection_invites = rows.therapy_connection_invites.filter((row) => row !== invite);
+        return persist(connection);
+      }
+      case "revoke_therapy_connection": {
+        const connection = connectionFor(payload['p_connection_id'], true);
+        connection['revoked_at'] ??= timestamp;
+        rows.therapy_connection_invites = rows.therapy_connection_invites.filter((row) => row['connection_id'] !== connection['id']);
+        rows.therapy_sessions.filter((row) => row['connection_id'] === connection['id'] && row['status'] === "scheduled" &&
+          Date.parse(row['starts_at']) > now).forEach((row) => { row['status'] = "cancelled"; row['updated_at'] = timestamp; });
+        return persist(connection);
+      }
+      case "save_therapy_session": {
+        const connection = connectionFor(payload['p_connection_id']);
+        if (!connection['user_id']) throw new Error("The client must accept the invitation before scheduling a session.");
+        const input = validateSessionInput({ connection_id: connection['id'], starts_at: payload['p_starts_at'],
+          duration_minutes: payload['p_duration_minutes'] }, now);
+        let appointment: DemoRow;
+        if (payload['p_session_id']) {
+          appointment = sessionFor(payload['p_session_id']).appointment;
+          if (appointment['connection_id'] !== connection['id']) throw new Error("A session cannot be moved to a different therapy connection.");
+          activeFuture(appointment);
+          appointment['starts_at'] = input.starts_at;
+          appointment['duration_minutes'] = input.duration_minutes;
+          appointment['updated_at'] = timestamp;
+        } else {
+          appointment = { id: crypto.randomUUID(), connection_id: connection['id'], user_id: connection['user_id'],
+            therapist_id: connection['therapist_id'], starts_at: input.starts_at, duration_minutes: input.duration_minutes,
+            status: "scheduled", created_at: timestamp, updated_at: timestamp };
+          rows.therapy_sessions.push(appointment);
+        }
+        return persist(appointment);
+      }
+      case "cancel_therapy_session": {
+        const { appointment } = sessionFor(payload['p_session_id']);
+        if (Date.parse(appointment['starts_at']) <= now) throw new Error("Only future sessions can be cancelled.");
+        appointment['status'] = "cancelled";
+        appointment['updated_at'] = timestamp;
+        return persist(appointment);
+      }
+      case "save_pre_session_note": {
+        const { appointment } = sessionFor(payload['p_session_id']);
+        if (appointment['user_id'] !== DEMO_USER_ID) throw new Error("Only the client can write this session note.");
+        activeFuture(appointment);
+        if (typeof payload['p_body'] !== "string") throw new Error("Write something before saving your note.");
+        if (typeof payload['p_submit'] !== "boolean") throw new Error("Choose whether to save privately or share the note.");
+        const existing = rows.pre_session_notes.find((row) => row['session_id'] === appointment['id']);
+        requireNoteRevision(existing);
+        const revision = nextNoteRevision(existing);
+        const note = { session_id: appointment['id'], user_id: DEMO_USER_ID, body: validatePreSessionNote(payload['p_body']),
+          status: payload['p_submit'] ? "submitted" : "draft", submitted_at: payload['p_submit'] ? revision : null,
+          reviewed_at: null, updated_at: revision };
+        rows.pre_session_notes = [...rows.pre_session_notes.filter((row) => row['session_id'] !== appointment['id']), note];
+        return persist(note);
+      }
+      case "mark_pre_session_note_reviewed": {
+        const { appointment, connection } = sessionFor(payload['p_session_id']);
+        if (connection['therapist_id'] !== DEMO_USER_ID) throw new Error("Only the assigned therapist can review this note.");
+        const note = rows.pre_session_notes.find((row) => row['session_id'] === appointment['id'] && row['status'] === "submitted");
+        if (!note) throw new Error("The client has not shared a note for this session.");
+        requireNoteRevision(note);
+        const revision = nextNoteRevision(note);
+        note['reviewed_at'] = revision;
+        note['updated_at'] = revision;
+        return persist(note);
+      }
+    }
+  } catch (error) {
+    const conflict = error instanceof Error && "code" in error && error.code === "40001";
+    return failure(error instanceof Error ? error.message : "This therapy operation could not be completed.", conflict ? 409 : 400, conflict ? "40001" : "DEMO_UNSUPPORTED");
+  }
+  return null;
+}
 
 function defaults(table: DemoTable): DemoRow {
   switch (table) {
@@ -226,14 +397,20 @@ export function createDemoClient(): SupabaseClient {
       goal['updated_at'] = new Date().toISOString();
       saveDatabase(rows); return response(goal);
     }
+    if (path.startsWith("/rest/v1/rpc/") && method === "POST") {
+      const result = therapyRpc(path.slice("/rest/v1/rpc/".length), payload, rows);
+      if (result) return result;
+    }
     const name = path.startsWith("/rest/v1/") ? path.slice("/rest/v1/".length) : "";
     if (!isTable(name)) return failure("This operation is not available in the demo.", 404);
     if (!["GET", "HEAD", "POST", "PATCH", "DELETE"].includes(method)) return failure("This demo method is not supported.", 405);
+    if (name === "therapy_connection_invites") return failure("Use the invitation actions to create or accept a private invite.", 403);
+    if (isTherapyTable(name) && method !== "GET" && method !== "HEAD") return failure("Use the therapy actions to change sessions, connections or notes.", 403);
     const params = url.searchParams;
     const controls = new Set(["select", "order", "limit", "offset", "on_conflict", "columns"]);
     const filters = [...params].filter(([key]) => !controls.has(key));
     if (filters.some(([key, value]) => !/^[a-z_][a-z0-9_]*$/.test(key) || !/^(eq|neq|gte|lte|gt|lt|is)\./.test(value))) return failure("Unsupported demo filter.");
-    const matches = (row: DemoRow) => row[ownerColumn(name)] === DEMO_USER_ID && filters.every(([key, value]) => {
+    const matches = (row: DemoRow) => canReadRow(name, row, rows) && filters.every(([key, value]) => {
       const dot = value.indexOf("."); const operator = value.slice(0, dot); const expected = value.slice(dot + 1);
       const actual = String(row[key]);
       switch (operator) {
@@ -266,6 +443,10 @@ export function createDemoClient(): SupabaseClient {
       rows[name] = [...rows[name].filter((row) => !changedIds.has(row['id'])), ...changes];
       selected = changes; saveDatabase(rows);
     } else if (method === "DELETE") {
+      if (name === "clients" && rows.therapy_connections.some((connection) =>
+          selected.some((row) => row['id'] === connection['client_id']))) {
+        return failure("This client has a therapy connection and cannot be deleted.", 409, "23503");
+      }
       rows[name] = rows[name].filter((row) => !matches(row)); deleteChildren(name, selected, rows); saveDatabase(rows);
     }
     const total = selected.length;

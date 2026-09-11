@@ -148,6 +148,7 @@ export class NavbarComponent {
   private readonly role = inject(RoleService);
 
   private readonly baseMoreLinks = [
+    { to: "/therapy-sessions", label: "Sessions", icon: CalendarDays },
     { to: "/calendar", label: "Calendar", icon: CalendarDays },
     { to: "/reminders", label: "Reminders", icon: Bell },
     { to: "/progress", label: "Progress", icon: TrendingUp },
@@ -172,7 +173,7 @@ export class NavbarComponent {
     const base = [
       { to: "/", label: "Home" },
       { to: "/journal", label: "Journal" },
-      { to: "/calendar", label: "Calendar" },
+      { to: "/therapy-sessions", label: "Sessions" },
       { to: "/progress", label: "Progress" },
       { to: "/insight", label: "Insight" },
     ];

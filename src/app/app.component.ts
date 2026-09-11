@@ -7,6 +7,7 @@ import { FloatingMoodButtonComponent } from "./layout/floating-mood-button.compo
 import { RemindersService } from "./core/reminders.service";
 import { DemoBannerComponent } from "./layout/demo-banner.component";
 import { isDemoMode } from "./core/demo-session";
+import { SessionCheckInComponent } from "./layout/session-check-in.component";
 
 @Component({
   selector: "app-root",
@@ -18,6 +19,7 @@ import { isDemoMode } from "./core/demo-session";
     HelpNowButtonComponent,
     FloatingMoodButtonComponent,
     DemoBannerComponent,
+    SessionCheckInComponent,
   ],
   template: `
     @if (demo) {
@@ -27,6 +29,9 @@ import { isDemoMode } from "./core/demo-session";
     <app-navbar />
     <app-floating-mood-button />
     <app-help-now-button />
+    @defer (on idle) {
+      <app-session-check-in />
+    }
     <p-toast position="top-center" />
   `,
 })

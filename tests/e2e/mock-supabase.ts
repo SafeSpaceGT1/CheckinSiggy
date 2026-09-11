@@ -29,6 +29,7 @@ const TABLES = [
   'crisis_warning_signs', 'crisis_coping_strategies', 'crisis_distractions',
   'crisis_support_contacts', 'crisis_professional_contacts', 'crisis_safety_steps', 'crisis_reasons_for_living',
   'crisis_plan_shares', 'clients', 'soap_notes',
+  'therapy_connections', 'therapy_connection_invites', 'therapy_sessions', 'pre_session_notes',
 ];
 
 export class MockSupabase {
@@ -127,7 +128,8 @@ export class MockSupabase {
     // Mirror the real ownership column distinction, so export tests cannot
     // conceal invalid user_id filters on clinician tables.
     const invalidOwner = ['clients', 'soap_notes'].includes(table) ? 'user_id' : 'therapist_id';
-    if (url.searchParams.has(invalidOwner)) {
+    const therapyTable = table.startsWith('therapy_') || table === 'pre_session_notes';
+    if (!therapyTable && url.searchParams.has(invalidOwner)) {
       return reply({ code: '42703', message: `column ${table}.${invalidOwner} does not exist` }, 400);
     }
     if (method === 'GET' && this.unavailableTables.has(table)) {

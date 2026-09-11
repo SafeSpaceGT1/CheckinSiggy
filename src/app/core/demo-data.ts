@@ -3,18 +3,43 @@ import { localSentiment } from "./sentiment-local";
 
 /** Flexible rows mirror the existing SQL tables; this data never leaves the tab. */
 export type DemoRow = Record<string, any>;
+export const DEMO_THERAPY_TABLES = [
+  "therapy_connections", "therapy_connection_invites", "therapy_sessions", "pre_session_notes",
+] as const;
 export const DEMO_TABLES = [
   "mood_entries", "journal_entries", "sentiment_analyses", "wellness_goals",
   "meditation_sessions", "exercise_logs", "reminders", "crisis_plans",
   "crisis_warning_signs", "crisis_coping_strategies", "crisis_distractions",
   "crisis_support_contacts", "crisis_professional_contacts", "crisis_safety_steps",
   "crisis_reasons_for_living", "crisis_plan_shares", "clients", "soap_notes",
+  ...DEMO_THERAPY_TABLES,
 ] as const;
 export type DemoTable = typeof DEMO_TABLES[number];
 export type DemoDatabase = Record<DemoTable, DemoRow[]>;
 
 export function localDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/** Both fictional personas share one local identity so visitors can try either side. */
+export function seedDemoTherapyData(rows: DemoDatabase, now = new Date()): void {
+  const client = rows.clients.find((row) => row['therapist_id'] === DEMO_USER_ID);
+  if (!client) return;
+  const dated = (days: number) => new Date(now.getTime() + days * 86400000).toISOString();
+  const connectionId = "dddddddd-dddd-4ddd-8ddd-000000001001";
+  rows.therapy_connections = [{ id: connectionId, therapist_id: DEMO_USER_ID,
+    client_id: client['id'], user_id: DEMO_USER_ID, therapist_name: "Dr. Taylor Morgan (demo)",
+    created_at: dated(-14), revoked_at: null }];
+  // The next appointment stays outside the prompt window until a visitor schedules one.
+  rows.therapy_sessions = [2, 5, -5].map((days, index) => ({
+    id: `dddddddd-dddd-4ddd-8ddd-${String(1002 + index).padStart(12, "0")}`,
+    connection_id: connectionId, user_id: DEMO_USER_ID, therapist_id: DEMO_USER_ID,
+    starts_at: dated(days), duration_minutes: 50, status: "scheduled",
+    created_at: dated(-7), updated_at: dated(-7),
+  }));
+  rows.pre_session_notes = [{ session_id: rows.therapy_sessions[2]['id'], user_id: DEMO_USER_ID,
+    body: "Fictional demo note: I would like to talk about keeping a steady evening routine and what helped me pause during a busy week.",
+    status: "submitted", submitted_at: dated(-6), reviewed_at: dated(-5), updated_at: dated(-5) }];
 }
 
 /** Seed dates relative to today so calendar, streaks and charts remain useful. */
@@ -102,5 +127,6 @@ export function seedDemoData(now = new Date()): DemoDatabase {
     assessment: "Sample note for exploring the interface; not a clinical record.",
     plan: "Sample next step: choose one small activity to practice.",
   } });
+  seedDemoTherapyData(rows, now);
   return rows;
 }

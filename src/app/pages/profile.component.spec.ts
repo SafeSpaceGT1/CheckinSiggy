@@ -42,7 +42,7 @@ describe("Account export integrity", () => {
         (owners[table] ??= []).push(column);
         expect(owner).toBe("export-owner");
         const expected = ["clients", "soap_notes"].includes(table) ? "therapist_id" : "user_id";
-        if (column !== expected) throw new Error(`Unknown owner column ${table}.${column}`);
+        if (column !== expected && !(["therapy_connections", "therapy_sessions"].includes(table) && column === "therapist_id")) throw new Error(`Unknown owner column ${table}.${column}`);
         return tableQuery;
       });
       tableQuery["order"] = jasmine.createSpy("order").and.returnValue(tableQuery);
@@ -52,6 +52,8 @@ describe("Account export integrity", () => {
     expect(owners["mood_entries"]).toEqual(["user_id", "user_id"]);
     expect(owners["clients"]).toEqual(["therapist_id", "therapist_id"]);
     expect(owners["soap_notes"]).toEqual(["therapist_id", "therapist_id"]);
+    expect(owners["therapy_sessions"]).toEqual(["user_id", "user_id", "therapist_id", "therapist_id"]);
+    expect(owners["pre_session_notes"]).toEqual(["user_id", "user_id"]);
     expect(query["range"]).toHaveBeenCalledWith(500, 999);
     const blob = (URL.createObjectURL as jasmine.Spy).calls.mostRecent().args[0] as Blob;
     const payload = JSON.parse(await blob.text());

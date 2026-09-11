@@ -18,6 +18,23 @@ Use the demo banner's **Explore demo pages** selector to try mood check-ins, jou
 
 Demo records and changes are local to the preview. They do not create a real account, modify a live database, send email, or call an AI provider. Sentiment and insights are computed locally from the demo records. Exiting the demo preserves real account sessions and preferences. Use fictional information while exploring.
 
+## Before your therapy session
+
+Open **Therapy sessions** from Home, Calendar, or the navigation menu. SIGGY asks **“Is there anything you would like your therapist to know?”** during the 24 hours before a scheduled session while the app is open. A client can also open **Write note** at any time before that session starts.
+
+- **Save private draft** keeps the note visible only to the client. **Share with therapist** makes it available to the connected therapist. Notes accept up to 2,000 characters.
+- **Not now** postpones the automatic prompt for one hour. Cancelled and past sessions do not prompt. Rescheduling uses the new appointment time.
+- Therapists see shared notes beside the appointment and can select **Mark reviewed**. Editing a shared note clears its reviewed status. Version checks prevent stale edits and marking a newer, unseen note as reviewed.
+- Notes are not monitored for urgent help. Sharing does not guarantee that a therapist has read a note before the session.
+
+For a quick demonstration, choose **Therapy sessions → Try pre-session check-in**, save or share a sample note, then choose **Therapist session review** in the demo menu. The demo includes upcoming sessions and previously reviewed sample notes; it never contacts a real therapist.
+
+For real accounts, the therapist opens **Therapy sessions → Manage connections**, selects an existing client record, and creates an invitation. Give that client the private, single-use code through an existing trusted channel. It expires after seven days. The client previews the therapist's name and explicitly accepts before either account can add sessions. A display-role selection alone never grants access to another account's records. Use only a code received directly from your therapist; a displayed name is not professional-credential verification.
+
+Both linked participants can add or reschedule an appointment they have already agreed on. Dates are stored as instants and displayed in each participant's local time zone. This is SIGGY's session calendar; it does not book or synchronize appointments in an external EHR. Disconnecting prevents further sharing, removes therapist access through that connection, and cancels future sessions. The client's saved notes remain available. A clinician cannot delete a connected client record through the client list and thereby erase the client's session history.
+
+The automatic prompt requires SIGGY to be open; background push, email, and SMS reminders are not implemented. Live sharing requires the backend migration described below. The interactive demo works without a backend.
+
 ## Run locally
 
 Use Node.js 24 and npm. From this directory:
@@ -42,6 +59,8 @@ The build script validates the pair and generates the browser configuration. Wit
 ## Backend setup
 
 For a new project, apply all SQL files under `supabase/migrations` in filename order. With the Supabase CLI installed and authenticated, link the intended project and use `supabase db push`. Configure Auth's site URL and allowed redirect URLs for the real app origin. Email/password registration is implemented; email confirmation must be verified against your project's email settings.
+
+For an existing SIGGY backend, also apply `20260911120000_therapy_sessions.sql`. It adds connections, private invitations, appointments, private/shared notes, and authenticated RPCs with row-level access rules. Browser clients cannot write directly to these tables or read invitation tokens. No real Supabase database was changed while developing this feature.
 
 Deploy the four functions with the Supabase CLI:
 

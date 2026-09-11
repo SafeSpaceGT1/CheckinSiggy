@@ -47,7 +47,7 @@ after(async () => { await db.close(); });
 
 test('all migrations apply to actual PostgreSQL and private tables enable RLS', async () => {
   const { rows } = await db.query("select relname, relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'");
-  assert.equal(rows.length, 18);
+  assert.equal(rows.length, 22);
   for (const row of rows) {
     assert.equal(row.relrowsecurity, true, row.relname);
     const privileges = (await db.query("select has_table_privilege('authenticated', $1, 'TRUNCATE') as can_truncate", [row.relname])).rows[0];

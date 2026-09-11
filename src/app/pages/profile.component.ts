@@ -14,7 +14,7 @@ import { CrisisPlanService, bundleIsEmpty } from "../core/crisis-plan.service";
 import { FeedbackService } from "../core/feedback.service";
 import { PageContainerComponent } from "../layout/page-container.component";
 
-/** Every user-owned table, exported verbatim (share tokens included — they're the user's). */
+/** Personal data and owned clinician records. Therapy invitation tokens are never exported. */
 const EXPORT_TABLES = [
   "mood_entries",
   "journal_entries",
@@ -34,6 +34,9 @@ const EXPORT_TABLES = [
   "crisis_plan_shares",
   "clients",
   "soap_notes",
+  "therapy_connections",
+  "therapy_sessions",
+  "pre_session_notes",
 ] as const;
 
 @Component({
@@ -148,18 +151,23 @@ export class ProfileComponent {
       const data: Record<string, unknown[]> = {};
       await Promise.all(
         EXPORT_TABLES.map(async (table) => {
-          const allRows: unknown[] = [];
-          const ownerColumn = table === "clients" || table === "soap_notes" ? "therapist_id" : "user_id";
+          const allRows = new Map<string, unknown>();
+          const ownerColumns = table === "therapy_connections" || table === "therapy_sessions"
+            ? ["user_id", "therapist_id"]
+            : [table === "clients" || table === "soap_notes" ? "therapist_id" : "user_id"];
+          const rowKey = table === "pre_session_notes" ? "session_id" : "id";
           const pageSize = 500;
-          for (let from = 0; ; from += pageSize) {
-            if (this.auth.user()?.id !== user.id) throw new Error("Your account changed. Please start the export again.");
-            const { data: rows, error } = await supabase.from(table).select("*")
-              .eq(ownerColumn, user.id).order("id").range(from, from + pageSize - 1);
-            if (error) throw new Error(`Couldn't export ${table}. Please try again.`);
-            allRows.push(...(rows ?? []));
-            if (!rows || rows.length < pageSize) break;
+          for (const ownerColumn of ownerColumns) {
+            for (let from = 0; ; from += pageSize) {
+              if (this.auth.user()?.id !== user.id) throw new Error("Your account changed. Please start the export again.");
+              const { data: rows, error } = await supabase.from(table).select("*")
+                .eq(ownerColumn, user.id).order(rowKey).range(from, from + pageSize - 1);
+              if (error) throw new Error(`Couldn't export ${table}. Please try again.`);
+              for (const row of rows ?? []) allRows.set(String(row[rowKey]), row);
+              if (!rows || rows.length < pageSize) break;
+            }
           }
-          data[table] = allRows;
+          data[table] = [...allRows.values()];
         })
       );
 

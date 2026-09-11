@@ -10,7 +10,7 @@
     "prebuild": "node scripts/configure-environment.mjs",
     "prestart": "node scripts/configure-environment.mjs",
     "test:ci": "ng test --watch=false --browsers=ChromeHeadlessNoSandbox",
-    "test:db": "node tests/backend.mjs",
+    "test:db": "node --test --test-concurrency=1 tests/backend.mjs tests/therapy-sessions.mjs",
     "test:functions": "node --test supabase/tests/*.test.mjs",
     "test:e2e": "playwright test",
     "preview": "node scripts/serve-dist.mjs",

@@ -32,6 +32,7 @@ import { exitDemo, resetDemo } from "../core/demo-session";
               <option value="/">Home</option>
               <option value="/mood-check">Mood check-in</option>
               <option value="/journal">Journal</option>
+              <option value="/therapy-sessions">Therapy sessions</option>
               <option value="/calendar">Calendar</option>
               <option value="/progress">Progress and goals</option>
               <option value="/insight">SIGGY Insight</option>
@@ -41,6 +42,7 @@ import { exitDemo, resetDemo } from "../core/demo-session";
             </optgroup>
             <optgroup label="Clinician tools">
               <option value="/clients">Clients</option>
+              <option value="/therapy-sessions?view=clinician">Therapist session review</option>
               <option value="/soap-notes">SOAP notes</option>
             </optgroup>
             <optgroup label="Account and tour">
@@ -71,7 +73,7 @@ export class DemoBannerComponent {
     const select = event.target as HTMLSelectElement;
     const path = select.value;
     if (!path) return;
-    if (path === "/clients" || path === "/soap-notes") {
+    if (path === "/clients" || path === "/soap-notes" || path === "/therapy-sessions?view=clinician") {
       this.role.setRole("clinician");
     } else if (!["/profile", "/settings", "/onboarding"].includes(path)) {
       this.role.setRole("client");

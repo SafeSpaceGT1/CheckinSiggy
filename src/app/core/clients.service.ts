@@ -130,10 +130,11 @@ export class ClientsService {
       const therapistId = this.auth.requireUserId();
       const { error } = await supabase.from("clients").delete()
         .eq("id", id).eq("therapist_id", therapistId).select("id").single();
+      if (error?.code === "23503") throw new Error("This client has therapy session history and cannot be deleted here. Manage or disconnect the relationship in Therapy sessions; saved notes are retained.");
       if (error) throw new Error(error.message);
       this.auth.assertUser(therapistId);
     },
-    onSuccess: () => Promise.all([this.invalidate("clients"), this.invalidate("soap-notes")]),
+    onSuccess: () => Promise.all([this.invalidate("clients"), this.invalidate("soap-notes"), this.queryClient.invalidateQueries({ queryKey: ["therapy"] })]),
   }));
 
   readonly addNoteMutation = injectMutation(() => ({

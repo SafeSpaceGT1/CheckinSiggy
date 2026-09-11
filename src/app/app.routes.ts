@@ -52,6 +52,13 @@ export const routes: Routes = [
     title: `${APP} — Calendar`,
   },
   {
+    path: "therapy-sessions",
+    loadComponent: () =>
+      import("./pages/therapy-sessions.component").then((m) => m.TherapySessionsComponent),
+    canActivate: [authGuard],
+    title: `${APP} — Therapy sessions`,
+  },
+  {
     path: "sentiment",
     loadComponent: () => import("./pages/sentiment.component").then((m) => m.SentimentComponent),
     canActivate: [authGuard],
