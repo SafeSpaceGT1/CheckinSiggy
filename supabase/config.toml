@@ -1,0 +1,13 @@
+project_id = "siggy"
+
+[functions.analyze-sentiment]
+verify_jwt = true
+
+[functions.analyze-journal-history]
+verify_jwt = true
+
+[functions.siggy-insight]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true

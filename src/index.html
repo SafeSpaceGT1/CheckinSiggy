@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Check-In with SIGGY — Reflect between sessions</title>
+  <base href="/" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f2a33c" />
+  <meta
+    name="description"
+    content="Check-In with SIGGY is a between-session mental health companion. Reflect between sessions. Arrive ready to talk."
+  />
+  <meta property="og:title" content="Check-In with SIGGY — Reflect between sessions" />
+  <meta
+    property="og:description"
+    content="Check-In with SIGGY is a between-session mental health companion. Reflect between sessions. Arrive ready to talk."
+  />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <script>
+    // Apply saved theme before first paint to avoid a flash.
+    (function () {
+      try {
+        var raw = localStorage.getItem("siggy:settings");
+        var theme = raw ? JSON.parse(raw).theme : "system";
+        var dark =
+          theme === "dark" ||
+          (theme !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.classList.add("dark");
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

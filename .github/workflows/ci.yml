@@ -1,0 +1,64 @@
+name: SIGGY checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: siggy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Check public configuration validation
+        run: node --test tests/configuration.test.mjs
+      - name: Test database migrations and account isolation
+        run: npm run test:db
+      - name: Test Edge Function helpers
+        run: npm run test:functions
+      - name: Type-check Edge Functions
+        run: npm run typecheck:functions
+      - name: Test Angular services and components
+        run: npm run test:ci -- --code-coverage
+      - name: Build without backend configuration
+        run: npm run build
+      - name: Test setup-required screen
+        run: npm run test:e2e
+        env:
+          SIGGY_E2E_UNCONFIGURED: '1'
+      - name: Build with synthetic test configuration
+        run: npm run build
+        env:
+          SIGGY_SUPABASE_URL: https://siggy-e2e.supabase.co
+          SIGGY_SUPABASE_ANON_KEY: sb_publishable_siggy-e2e-not-a-real-key
+      - name: Test browser workflows using synthetic API fixtures
+        run: npm run test:e2e
+      - name: Check dependency advisories
+        run: npm audit --audit-level=high
+      - name: Retain test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: siggy-test-results
+          path: |
+            playwright-report/
+            test-results/
+            coverage/
+          if-no-files-found: ignore
+          retention-days: 7

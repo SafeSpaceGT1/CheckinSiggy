@@ -1,0 +1,62 @@
+{
+  "name": "siggy",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "prebuild": "node scripts/configure-environment.mjs",
+    "prestart": "node scripts/configure-environment.mjs",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadlessNoSandbox",
+    "test:db": "node tests/backend.mjs",
+    "test:functions": "node --test supabase/tests/*.test.mjs",
+    "test:e2e": "playwright test",
+    "preview": "node scripts/serve-dist.mjs",
+    "test:config": "node --test tests/configuration.test.mjs",
+    "typecheck:functions": "tsc -p supabase/tsconfig.functions.json"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/common": "21.2.23",
+    "@angular/compiler": "21.2.23",
+    "@angular/core": "21.2.23",
+    "@angular/forms": "21.2.23",
+    "@angular/platform-browser": "21.2.23",
+    "@angular/platform-browser-dynamic": "21.2.23",
+    "@angular/router": "21.2.23",
+    "@supabase/supabase-js": "^2.110.7",
+    "@tanstack/angular-query-experimental": "^5.101.2",
+    "date-fns": "^4.4.0",
+    "jspdf": "^4.2.1",
+    "lucide-angular": "^1.0.0",
+    "primeicons": "^8.0.0",
+    "primeng": "21.1.10",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0",
+    "@primeuix/themes": "^2.0.3"
+  },
+  "devDependencies": {
+    "@angular/cli": "21.2.24",
+    "@angular/compiler-cli": "21.2.23",
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0",
+    "@types/jasmine": "~5.1.0",
+    "autoprefixer": "^10.5.4",
+    "jasmine-core": "~5.6.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "postcss": "^8.5.19",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~5.9.3",
+    "@angular/build": "21.2.24"
+  },
+  "engines": {
+    "node": ">=24.0.0 <25"
+  }
+}

@@ -1,0 +1,219 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap");
+@import "primeicons/primeicons.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 45% 97%;
+    --foreground: 217 33% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 217 33% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 33% 17%;
+    --primary: 35 90% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 91% 60%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 38 90% 94%;
+    --accent-foreground: 28 80% 34%;
+    --muted: 40 30% 94%;
+    --muted-foreground: 220 12% 45%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 62% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 42 95% 50%;
+    --warning-foreground: 217 33% 17%;
+    --border: 38 30% 88%;
+    --input: 38 30% 88%;
+    --ring: 35 90% 55%;
+    --radius: 1rem;
+    --gradient-start: 35 90% 55%;
+    --gradient-end: 22 90% 54%;
+    --glow-color: 35 90% 55%;
+  }
+
+  .dark {
+    --background: 28 14% 8%;
+    --foreground: 40 30% 96%;
+    --card: 26 12% 12%;
+    --card-foreground: 40 30% 96%;
+    --popover: 26 12% 11%;
+    --popover-foreground: 40 30% 96%;
+    --primary: 38 95% 58%;
+    --primary-foreground: 26 40% 10%;
+    --secondary: 217 90% 66%;
+    --secondary-foreground: 222 40% 12%;
+    --accent: 32 40% 18%;
+    --accent-foreground: 38 90% 80%;
+    --muted: 26 10% 16%;
+    --muted-foreground: 35 15% 62%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 55% 48%;
+    --success-foreground: 150 40% 8%;
+    --warning: 42 95% 55%;
+    --warning-foreground: 26 30% 10%;
+    --border: 28 12% 20%;
+    --input: 28 12% 20%;
+    --ring: 38 95% 58%;
+    --gradient-start: 38 95% 58%;
+    --gradient-end: 22 92% 58%;
+    --glow-color: 38 95% 58%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image: radial-gradient(at 15% 15%, hsl(var(--gradient-start) / 0.1) 0px, transparent 55%),
+      radial-gradient(at 85% 5%, hsl(var(--secondary) / 0.08) 0px, transparent 50%),
+      radial-gradient(at 80% 90%, hsl(var(--gradient-end) / 0.09) 0px, transparent 55%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+    margin: 0;
+  }
+
+  h1, h2, h3 {
+    @apply font-display font-extrabold tracking-tight;
+  }
+
+  .font-display {
+    font-weight: 700;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg rounded-2xl;
+  }
+  .glass-card-elevated {
+    @apply bg-card/90 backdrop-blur-xl border border-border/50 shadow-xl rounded-2xl;
+  }
+  .gradient-bg {
+    @apply bg-gradient-primary text-primary-foreground;
+  }
+  .gradient-text {
+    background-image: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hover-lift {
+    @apply transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-card-hover;
+  }
+  .hover-glow {
+    @apply transition-shadow duration-300 hover:shadow-glow;
+  }
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98];
+  }
+  .card-interactive {
+    @apply glass-card hover-lift cursor-pointer active:scale-[0.99] transition-all;
+  }
+  .card-highlight {
+    @apply glass-card border-primary/30 shadow-glow;
+  }
+  .btn-glow {
+    @apply shadow-glow transition-shadow duration-300 hover:shadow-glow-lg;
+  }
+  .stat-card {
+    @apply glass-card flex flex-col gap-1 p-4;
+  }
+  .stat-value {
+    @apply font-display font-bold text-2xl leading-none text-foreground;
+  }
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+  .empty-state {
+    @apply flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/40 px-6 py-12 text-center;
+  }
+  .empty-state-icon {
+    @apply flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-primary-soft text-primary;
+  }
+  .divider-gradient {
+    @apply h-px w-full border-0 bg-gradient-to-r from-transparent via-border to-transparent;
+  }
+  .tabs-enhanced {
+    @apply inline-flex h-auto items-center justify-center gap-1 rounded-full bg-muted/70 p-1 backdrop-blur;
+  }
+  .badge-success {
+    @apply inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success;
+  }
+  .badge-warning {
+    @apply inline-flex items-center gap-1 rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning-foreground dark:text-warning;
+  }
+}
+
+@layer utilities {
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px hsl(var(--glow-color) / 0.25); }
+    50% { box-shadow: 0 0 40px hsl(var(--glow-color) / 0.55); }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .animate-pulse-glow {
+    animation: pulse-glow 2.4s ease-in-out infinite;
+  }
+  .animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradient-shift 6s ease infinite;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* PrimeNG harmonization: SIGGY radius + font on themed components */
+.p-component {
+  font-family: Nunito, ui-sans-serif, system-ui, sans-serif;
+}
+.p-button {
+  border-radius: 0.75rem;
+  min-height: 44px;
+}
+.p-inputtext {
+  border-radius: 0.75rem;
+  min-height: 44px;
+  width: 100%;
+}
+.p-toast .p-toast-message {
+  border-radius: 1rem;
+  backdrop-filter: blur(16px);
+}
+.p-drawer {
+  border-top-left-radius: 1.25rem;
+  border-top-right-radius: 1.25rem;
+}
+.p-tab {
+  min-height: 44px;
+}
