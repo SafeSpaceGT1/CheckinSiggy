@@ -12,6 +12,8 @@ Explore SIGGY with fictional sample data and no Supabase account or API keys:
 
 You can also add `?demo=1` to the app's preview URL to enter the demo directly. An existing Codespace needs **Codespaces: Rebuild Container** from the command palette after pulling this configuration. To start a preview manually, run `npm ci`, `npm run build`, then `npm run preview` and open port **4173**.
 
+If an older Codespace stops at Angular's usage-data question, click in its terminal, type `N`, and press Enter to let setup continue. Angular analytics is disabled in the project configuration so new checkouts skip this prompt.
+
 Use the demo banner's **Explore demo pages** selector to try mood check-ins, journals and sentiment summaries, wellness goals, breathing and grounding activities, the calendar, crisis planning, and client records and notes in clinician view. Choosing clinician tools switches the view automatically. Demo changes and preferences stay in this browser tab across reloads. Use **Reset demo** to restore the sample records or **Exit demo** to leave the demo.
 
 Demo records and changes are local to the preview. They do not create a real account, modify a live database, send email, or call an AI provider. Sentiment and insights are computed locally from the demo records. Exiting the demo preserves real account sessions and preferences. Use fictional information while exploring.
