@@ -38,7 +38,7 @@ jobs:
         run: npm run test:ci -- --code-coverage
       - name: Build without backend configuration
         run: npm run build
-      - name: Test setup-required screen
+      - name: Test setup screen and interactive demo
         run: npm run test:e2e
         env:
           SIGGY_E2E_UNCONFIGURED: '1'
@@ -47,7 +47,7 @@ jobs:
         env:
           SIGGY_SUPABASE_URL: https://siggy-e2e.supabase.co
           SIGGY_SUPABASE_ANON_KEY: sb_publishable_siggy-e2e-not-a-real-key
-      - name: Test browser workflows using synthetic API fixtures
+      - name: Test account workflows and demo isolation
         run: npm run test:e2e
       - name: Check dependency advisories
         run: npm audit --audit-level=high

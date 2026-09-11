@@ -1,6 +1,8 @@
 import { InjectionToken } from "@angular/core";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { environment } from "../../environments/environment";
+import { createDemoClient } from "./demo-backend";
+import { isDemoMode } from "./demo-session";
 
 const url = environment.supabaseUrl.trim();
 const publishableKey = environment.supabasePublishableKey.trim();
@@ -24,7 +26,7 @@ export const supabaseConfigured = isSupabaseConfigurationValid(url, publishableK
 
 // No storage access at module evaluation: private-mode browsers can throw even
 // when reading window.localStorage. Supabase already tolerates unavailable storage.
-export const supabase = createClient(
+export const supabase = isDemoMode() ? createDemoClient() : createClient(
   supabaseConfigured ? url : "https://placeholder-project.supabase.co",
   supabaseConfigured ? publishableKey : "placeholder-publishable-key",
   {
@@ -42,5 +44,5 @@ export const SUPABASE_CLIENT = new InjectionToken<SupabaseClient>("Supabase clie
 });
 export const SUPABASE_CONFIGURED = new InjectionToken<boolean>("Supabase configured", {
   providedIn: "root",
-  factory: () => supabaseConfigured,
+  factory: () => supabaseConfigured || isDemoMode(),
 });

@@ -24,6 +24,7 @@ import {
 } from "../core/journal.service";
 import { FeedbackService } from "../core/feedback.service";
 import { PageContainerComponent } from "../layout/page-container.component";
+import { isDemoMode } from "../core/demo-session";
 
 const CLAMP_THRESHOLD = 280;
 
@@ -161,7 +162,7 @@ const CLAMP_THRESHOLD = 280;
                     @if (analysis.source === "local") {
                       <span
                         class="text-[11px] text-muted-foreground"
-                        pTooltip="Estimated on-device — AI wasn't available"
+                        [pTooltip]="localAnalysisDescription"
                         tooltipPosition="top"
                       >
                         local
@@ -197,6 +198,10 @@ const CLAMP_THRESHOLD = 280;
   `,
 })
 export class JournalComponent {
+  readonly demo = isDemoMode();
+  readonly localAnalysisDescription = this.demo
+    ? "Demo reflection calculated locally; no live AI"
+    : "Estimated on-device — AI wasn't available";
   readonly icons = { NotebookPen, Sparkles, Trash2, Loader2 };
   readonly clampThreshold = CLAMP_THRESHOLD;
 
@@ -317,7 +322,9 @@ export class JournalComponent {
         this.messages.add({
           severity: "info",
           summary: "Reflected locally",
-          detail: "AI wasn't available, so SIGGY made a light on-device read of the tone.",
+          detail: this.demo
+            ? "Demo reflection calculated locally. No live AI was used."
+            : "AI wasn't available, so SIGGY made a light on-device read of the tone.",
         });
       }
     } catch (error) {

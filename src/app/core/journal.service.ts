@@ -152,7 +152,7 @@ export class JournalService {
       this.auth.assertUser(userId);
       if (!error && data?.analysis) {
         this.invalidateAnalyses();
-        return "ai";
+        return data.analysis.source === "local" ? "local" : "ai";
       }
 
       const status = (error as { context?: { status?: number } } | null)?.context?.status;

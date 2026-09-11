@@ -26,6 +26,7 @@ import {
 } from "../core/insight.service";
 import { FeedbackService } from "../core/feedback.service";
 import { PageContainerComponent } from "../layout/page-container.component";
+import { isDemoMode } from "../core/demo-session";
 
 type RangeDays = 7 | 30 | 90;
 
@@ -60,6 +61,11 @@ const REASON_LABELS: Record<string, string> = {
         <p class="mt-2 text-sm text-muted-foreground">
           A session-prep summary built from your own check-ins and journals.
         </p>
+        @if (demo) {
+          <p class="mt-2 text-xs font-medium text-accent-foreground">
+            Demo preview: statistics and sample reflections are calculated in this tab. No live AI.
+          </p>
+        }
       </header>
 
       <div
@@ -288,6 +294,7 @@ const REASON_LABELS: Record<string, string> = {
   `,
 })
 export class InsightComponent {
+  readonly demo = isDemoMode();
   readonly icons = { Sparkles, Flag, CalendarDays, TrendingUp, TrendingDown, Minus, Copy, RefreshCw, CircleHelp };
   readonly ranges: RangeDays[] = [7, 30, 90];
 
@@ -474,6 +481,7 @@ export class InsightComponent {
     const stats = payload.stats;
     const lines: string[] = [
       `SIGGY Insight — session prep (last ${payload.range_days} days)`,
+      ...(this.demo ? ["Sample data — local demo. No live AI."] : []),
       `Generated ${this.generatedLabel()}`,
       "",
       `Check-ins: ${stats.total_check_ins} across ${stats.coverage_days}/${stats.range_days} days · Journals: ${stats.total_journals}`,

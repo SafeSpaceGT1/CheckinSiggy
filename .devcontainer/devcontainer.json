@@ -1,0 +1,22 @@
+{
+  "name": "SIGGY interactive demo",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24-bookworm",
+  "remoteUser": "node",
+  "postCreateCommand": "npm ci && npm run build",
+  "waitFor": "postCreateCommand",
+  "postStartCommand": "bash -lc 'if ! curl --fail --silent --max-time 2 http://127.0.0.1:4173/ > /dev/null; then nohup npm run preview > /tmp/siggy-preview.log 2>&1 < /dev/null & fi'",
+  "forwardPorts": [4173],
+  "portsAttributes": {
+    "4173": {
+      "label": "SIGGY demo",
+      "onAutoForward": "openBrowserOnce"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

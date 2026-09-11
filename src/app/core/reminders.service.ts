@@ -11,6 +11,7 @@ import { supabase } from "./supabase.client";
 import { AuthService } from "./auth.service";
 import { dayKey } from "./streak";
 import { requiredText } from "./data-validation";
+import { isDemoMode } from "./demo-session";
 
 export type ReminderKind = "mood_check" | "journal" | "meditation" | "custom";
 
@@ -38,7 +39,9 @@ export interface NewReminder {
  */
 export const REMINDER_NOTIFICATION_BODY = "Your SIGGY check-in is ready.";
 
-const FIRED_STORAGE_KEY = "siggy:reminders:fired";
+const FIRED_STORAGE_KEY = isDemoMode() ? "siggy:demo:reminders:fired" : "siggy:reminders:fired";
+
+function reminderStorage(): Storage { return isDemoMode() ? sessionStorage : localStorage; }
 
 const KIND_ROUTES: Record<ReminderKind, string> = {
   mood_check: "/mood-check",
@@ -70,7 +73,7 @@ export class RemindersService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly firedInMemory = new Map<string, Record<string, string>>();
 
-  readonly supported = typeof Notification !== "undefined";
+  readonly supported = !isDemoMode() && typeof Notification !== "undefined";
   readonly permission = signal<NotificationPermission>(
     this.supported ? Notification.permission : "denied"
   );
@@ -212,7 +215,7 @@ export class RemindersService {
   private readFired(userId: string, today: string): Record<string, string> {
     let stored: unknown;
     try {
-      stored = JSON.parse(localStorage.getItem(`${FIRED_STORAGE_KEY}:${userId}`) ?? "{}");
+      stored = JSON.parse(reminderStorage().getItem(`${FIRED_STORAGE_KEY}:${userId}`) ?? "{}");
     } catch { stored = {}; }
     const raw = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
     const combined = { ...raw, ...this.firedInMemory.get(userId) };
@@ -224,7 +227,7 @@ export class RemindersService {
     // Memory still prevents duplicate toasts while storage is blocked or full.
     this.firedInMemory.set(userId, { ...map });
     try {
-      localStorage.setItem(`${FIRED_STORAGE_KEY}:${userId}`, JSON.stringify(map));
+      reminderStorage().setItem(`${FIRED_STORAGE_KEY}:${userId}`, JSON.stringify(map));
     } catch { /* Already retained in memory. */ }
   }
 }

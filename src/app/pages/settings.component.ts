@@ -15,6 +15,7 @@ import { RoleService } from "../core/role.service";
 import { FeedbackService } from "../core/feedback.service";
 import { PageContainerComponent } from "../layout/page-container.component";
 import { SafetyDisclosureComponent } from "../layout/safety-disclosure.component";
+import { exitDemo, isDemoMode } from "../core/demo-session";
 
 const THEMES: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Light", icon: Sun },
@@ -124,10 +125,10 @@ const THEMES: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
 
       <section class="glass-card mt-4 animate-fade-in-up p-5" style="animation-delay: 260ms" aria-label="Account">
         <h2 class="text-lg">Account</h2>
-        <p class="mt-1 truncate text-sm text-muted-foreground">Signed in as {{ email() }}</p>
+        <p class="mt-1 truncate text-sm text-muted-foreground">{{ demo ? 'Sample account:' : 'Signed in as' }} {{ email() }}</p>
         <p-button
-          label="Sign out"
-          ariaLabel="Sign out"
+          [label]="demo ? 'Exit demo' : 'Sign out'"
+          [ariaLabel]="demo ? 'Exit demo' : 'Sign out'"
           icon="pi pi-sign-out"
           [outlined]="true"
           styleClass="mt-3"
@@ -143,14 +144,19 @@ const THEMES: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
       >
         <div class="flex items-center gap-2">
           <lucide-icon [img]="icons.TriangleAlert" [size]="18" class="text-destructive" />
-          <h2 class="text-lg">Danger zone</h2>
+          <h2 class="text-lg">{{ demo ? 'Demo data' : 'Danger zone' }}</h2>
         </div>
         <p class="mt-2 text-sm text-muted-foreground">
-          Deleting your account removes every check-in, journal entry, goal, session,
-          crisis plan, share link, client, and note — permanently. There is no undo.
+          @if (demo) {
+            Clear the fictional sample data and changes in this tab, then exit the demo.
+            No real account is deleted. Explore the demo again to start fresh.
+          } @else {
+            Deleting your account removes every check-in, journal entry, goal, session,
+            crisis plan, share link, client, and note — permanently. There is no undo.
+          }
         </p>
         <p-button
-          label="Delete my account"
+          [label]="demo ? 'Clear demo data' : 'Delete my account'"
           severity="danger"
           [outlined]="true"
           styleClass="mt-3"
@@ -160,7 +166,7 @@ const THEMES: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
     </app-page-container>
 
     <p-dialog
-      header="Delete account?"
+      [header]="demo ? 'Clear demo data?' : 'Delete account?'"
       [visible]="deleteOpen()"
       (visibleChange)="deleteOpen.set($event)"
       [modal]="true"
@@ -171,8 +177,13 @@ const THEMES: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
       [style]="{ width: 'min(92vw, 420px)' }"
     >
       <p class="text-sm text-muted-foreground">
-        This permanently deletes your account and all of your data. Consider a
-        <span class="font-medium text-foreground">JSON export from Profile</span> first.
+        @if (demo) {
+          This clears only the sample data and your demo changes in this tab.
+          You will return to the sign-in screen.
+        } @else {
+          This permanently deletes your account and all of your data. Consider a
+          <span class="font-medium text-foreground">JSON export from Profile</span> first.
+        }
       </p>
       <label class="mt-4 block text-sm font-medium" for="delete-confirm">
         Type <span class="font-semibold">DELETE</span> to confirm
@@ -187,7 +198,7 @@ const THEMES: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
       />
       <div class="mt-4 flex gap-2">
         <p-button
-          label="Delete forever"
+          [label]="demo ? 'Clear demo and exit' : 'Delete forever'"
           severity="danger"
           styleClass="w-full"
           class="block flex-1"
@@ -201,6 +212,7 @@ const THEMES: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
   `,
 })
 export class SettingsComponent {
+  readonly demo = isDemoMode();
   readonly icons = { TriangleAlert, LogOut };
   readonly themes = THEMES;
 
@@ -246,6 +258,10 @@ export class SettingsComponent {
   }
 
   async signOut() {
+    if (this.demo) {
+      exitDemo();
+      return;
+    }
     if (this.signingOut()) return;
     this.signingOut.set(true);
     try {
@@ -272,6 +288,10 @@ export class SettingsComponent {
         throw new Error(
           (error as Error | null)?.message ?? "The server couldn't delete the account."
         );
+      }
+      if (this.demo) {
+        exitDemo();
+        return;
       }
       await supabase.auth.signOut();
       this.messages.add({

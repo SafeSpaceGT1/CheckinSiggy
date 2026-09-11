@@ -87,7 +87,7 @@ const MOOD_LABELS: Record<number, string> = {
       </section>
 
       <section class="mt-8 animate-fade-in-up" style="animation-delay: 120ms" aria-label="Quick actions">
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           @for (tile of tiles; track tile.to) {
             <a [routerLink]="tile.to" class="card-interactive flex items-center gap-4 p-5">
               <span

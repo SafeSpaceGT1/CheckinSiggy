@@ -11,6 +11,7 @@ import { JournalService, type Sentiment } from "../core/journal.service";
 import { localSentiment } from "../core/sentiment-local";
 import { FeedbackService } from "../core/feedback.service";
 import { PageContainerComponent } from "../layout/page-container.component";
+import { isDemoMode } from "../core/demo-session";
 
 interface HistoryAnalysis {
   overall: string;
@@ -151,7 +152,7 @@ const SENTIMENT_ORDER: Sentiment[] = ["positive", "mixed", "neutral", "negative"
                 <div class="flex items-center justify-between">
                   @if (historySource() === "local") {
                     <span class="text-[11px] text-muted-foreground">
-                      Estimated on-device — AI wasn't available.
+                      {{ demo ? 'Demo reflection calculated locally. No live AI.' : "Estimated on-device — AI wasn't available." }}
                     </span>
                   } @else {
                     <span></span>
@@ -211,6 +212,7 @@ const SENTIMENT_ORDER: Sentiment[] = ["positive", "mixed", "neutral", "negative"
   `,
 })
 export class SentimentComponent {
+  readonly demo = isDemoMode();
   readonly icons = { HeartPulse, Sparkles, NotebookPen, Loader2 };
   readonly reflectWindow = 30;
 
@@ -295,7 +297,7 @@ export class SentimentComponent {
 
       if (!error && data?.analysis) {
         this.history.set(data.analysis as HistoryAnalysis);
-        this.historySource.set("ai");
+        this.historySource.set(this.demo ? "local" : "ai");
         this.feedback.trigger("success");
         return;
       }
@@ -357,7 +359,9 @@ export class SentimentComponent {
     this.messages.add({
       severity: "info",
       summary: "Reflected locally",
-      detail: "AI wasn't available, so this is a light on-device read.",
+      detail: this.demo
+        ? "Demo reflection calculated locally. No live AI was used."
+        : "AI wasn't available, so this is a light on-device read.",
     });
   }
 }

@@ -15,6 +15,7 @@ import { supabase, supabaseConfigured } from "../core/supabase.client";
 import { AuthService } from "../core/auth.service";
 import { FeedbackService } from "../core/feedback.service";
 import { SafetyDisclosureComponent } from "../layout/safety-disclosure.component";
+import { enterDemo } from "../core/demo-session";
 
 function friendlyAuthError(message: string): string {
   if (/invalid login credentials/i.test(message)) {
@@ -55,6 +56,22 @@ function friendlyAuthError(message: string): string {
               Reflect between sessions. Arrive ready to talk.
             </p>
           </div>
+
+          <section class="mb-5 rounded-2xl border border-primary/30 bg-accent/60 p-4" aria-label="Explore SIGGY">
+            <p class="font-semibold">Take SIGGY for a spin</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Explore check-ins, journals and clinician tools with fictional sample data.
+              No account needed. Demo changes stay in this browser tab.
+            </p>
+            <p-button
+              label="Explore demo"
+              ariaLabel="Explore demo"
+              icon="pi pi-play"
+              styleClass="mt-3 w-full btn-glow"
+              class="block w-full"
+              (onClick)="exploreDemo()"
+            />
+          </section>
 
           @if (!configured) {
             <div role="alert" class="mb-4 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
@@ -170,6 +187,7 @@ function friendlyAuthError(message: string): string {
 })
 export class AuthComponent {
   readonly HeartPulse = HeartPulse;
+  readonly exploreDemo = enterDemo;
 
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly router = inject(Router);

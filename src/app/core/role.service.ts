@@ -1,14 +1,16 @@
 import { computed, inject, Injectable, signal } from "@angular/core";
 import { AuthService } from "./auth.service";
+import { isDemoMode } from "./demo-session";
 
 export type UserRole = "client" | "clinician" | null;
 
 function readStoredRole(userId: string): UserRole {
   try {
-    const raw = localStorage.getItem(`siggy:role:${userId}`);
+    const raw = isDemoMode() ? sessionStorage.getItem("siggy:demo:role") : localStorage.getItem(`siggy:role:${userId}`);
+    if (!raw && isDemoMode()) return "client";
     return raw === "client" || raw === "clinician" ? raw : null;
   } catch {
-    return null;
+    return isDemoMode() ? "client" : null;
   }
 }
 
@@ -27,8 +29,11 @@ export class RoleService {
     const id = this.auth.requireUserId();
     if (role !== "client" && role !== "clinician") throw new Error("Choose a valid role.");
     try {
-      localStorage.setItem(`siggy:role:${id}`, role);
-      localStorage.removeItem("userRole");
+      if (isDemoMode()) sessionStorage.setItem("siggy:demo:role", role);
+      else {
+        localStorage.setItem(`siggy:role:${id}`, role);
+        localStorage.removeItem("userRole");
+      }
     } catch {
       // Keep the choice in memory when device storage is unavailable.
     }

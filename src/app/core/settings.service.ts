@@ -1,4 +1,5 @@
 import { computed, DestroyRef, effect, inject, Injectable, signal } from "@angular/core";
+import { isDemoMode } from "./demo-session";
 
 export type ThemePreference = "light" | "dark" | "system";
 
@@ -10,7 +11,9 @@ export interface StoredSettings {
   reviewIntervalDays: number;
 }
 
-const STORAGE_KEY = "siggy:settings";
+const STORAGE_KEY = isDemoMode() ? "siggy:demo:settings" : "siggy:settings";
+
+function settingsStorage(): Storage { return isDemoMode() ? sessionStorage : localStorage; }
 
 const defaults: StoredSettings = {
   theme: "system",
@@ -32,7 +35,7 @@ export function normalizeSettings(value: unknown): StoredSettings {
 
 function loadSettings(): StoredSettings {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = settingsStorage().getItem(STORAGE_KEY);
     if (!raw) return defaults;
     return normalizeSettings(JSON.parse(raw));
   } catch {
@@ -79,7 +82,7 @@ export class SettingsService {
         reviewIntervalDays: this.reviewIntervalDays(),
       };
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+        settingsStorage().setItem(STORAGE_KEY, JSON.stringify(snapshot));
       } catch {
         // Storage unavailable (private mode etc.) — settings just won't persist.
       }

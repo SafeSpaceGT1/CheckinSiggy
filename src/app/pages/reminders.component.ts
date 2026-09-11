@@ -1,4 +1,5 @@
 import { QueryErrorComponent } from "../ui/query-error.component";
+import { isDemoMode } from "../core/demo-session";
 import { Component, computed, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import {
@@ -71,7 +72,9 @@ const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
           </div>
         </div>
 
-        @if (reminders.supported && reminders.permission() !== "granted") {
+        @if (demo) {
+          <p class="mt-3 text-sm text-muted-foreground">Demo reminders appear inside this tab while it is open. Device notification permissions stay unchanged.</p>
+        } @else if (reminders.supported && reminders.permission() !== "granted") {
           <div class="mt-3 flex flex-wrap items-center gap-3">
             <p-button
               label="Enable device notifications"
@@ -220,6 +223,7 @@ const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
   `,
 })
 export class RemindersComponent {
+  readonly demo = isDemoMode();
   readonly icons = { Bell, BellRing, Shield, Trash2, Plus };
   readonly kinds = KINDS;
   readonly kindMeta = KIND_META;

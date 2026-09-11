@@ -1,4 +1,5 @@
 import { EMERGENCY_DISCLAIMER, type PlanBundle } from "./crisis-plan.service";
+import { isDemoMode } from "./demo-session";
 
 /**
  * Client-side PDF export. jspdf is imported lazily so it stays out of the
@@ -33,6 +34,7 @@ export async function exportCrisisPlanPdf(bundle: PlanBundle): Promise<void> {
 
   // Title
   writeLines("My Crisis Plan", 20, "bold", 9);
+  if (isDemoMode()) writeLines("DEMO - Fictional sample data", 11, "bold", 7);
   writeLines("Check-In with SIGGY — Reflect between sessions. Arrive ready to talk.", 10, "normal", 6);
   writeLines(
     `Exported ${new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}`,
@@ -88,5 +90,5 @@ export async function exportCrisisPlanPdf(bundle: PlanBundle): Promise<void> {
     doc.setTextColor(0);
   }
 
-  doc.save("siggy-crisis-plan.pdf");
+  doc.save(isDemoMode() ? "siggy-demo-crisis-plan.pdf" : "siggy-crisis-plan.pdf");
 }

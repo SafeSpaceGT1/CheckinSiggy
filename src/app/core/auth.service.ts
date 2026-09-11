@@ -2,6 +2,7 @@ import { DestroyRef, inject, Injectable, signal } from "@angular/core";
 import { QueryClient } from "@tanstack/angular-query-experimental";
 import type { Session, User } from "@supabase/supabase-js";
 import { SUPABASE_CLIENT, SUPABASE_CONFIGURED } from "./supabase.client";
+import { exitDemo, isDemoMode } from "./demo-session";
 
 @Injectable({ providedIn: "root" })
 export class AuthService {
@@ -77,6 +78,7 @@ export class AuthService {
     const { error } = await this.client.auth.signOut();
     if (error) throw new Error(error.message);
     this.applySession(null);
+    if (isDemoMode()) exitDemo();
   }
 
   private applySession(session: Session | null): void {

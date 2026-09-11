@@ -2,6 +2,20 @@
 
 Between-session reflection, mood tracking, journaling, crisis planning, and clinician notes, using the supplied Brightside design. This package repairs the Brightside Angular upload; the unbranded Angular archive had the same application logic. Brand colors, typography, and the supplied component reference were retained.
 
+## Explore the interactive demo
+
+Explore SIGGY with fictional sample data and no Supabase account or API keys:
+
+1. Open [SafeSpaceGT1/CheckinSiggy](https://github.com/SafeSpaceGT1/CheckinSiggy) and choose **Code → Codespaces → Create codespace on main**.
+2. Wait for the first setup to finish. The included Codespaces configuration installs Node.js 24 dependencies, builds the app, and starts its preview automatically.
+3. Open the browser preview and click **Explore demo**. If the browser does not open automatically, choose the **Ports** tab and click the globe beside **SIGGY demo / 4173**.
+
+You can also add `?demo=1` to the app's preview URL to enter the demo directly. An existing Codespace needs **Codespaces: Rebuild Container** from the command palette after pulling this configuration. To start a preview manually, run `npm ci`, `npm run build`, then `npm run preview` and open port **4173**.
+
+Use the demo banner's **Explore demo pages** selector to try mood check-ins, journals and sentiment summaries, wellness goals, breathing and grounding activities, the calendar, crisis planning, and client records and notes in clinician view. Choosing clinician tools switches the view automatically. Demo changes and preferences stay in this browser tab across reloads. Use **Reset demo** to restore the sample records or **Exit demo** to leave the demo.
+
+Demo records and changes are local to the preview. They do not create a real account, modify a live database, send email, or call an AI provider. Sentiment and insights are computed locally from the demo records. Exiting the demo preserves real account sessions and preferences. Use fictional information while exploring.
+
 ## Run locally
 
 Use Node.js 24 and npm. From this directory:
@@ -11,7 +25,7 @@ npm ci
 npm start
 ```
 
-Open `http://localhost:8080`. Without backend configuration, the app displays **Setup required** and disables authentication. It does not contain a demo login or a live backend.
+Open `http://localhost:8080` and choose **Explore demo** to use the sample app. Without backend configuration, real account sign-in remains disabled and the app displays **Setup required**. Demo mode works independently of the live backend.
 
 Configure a Supabase project using either the two public values in `src/environments/environment.ts`, or environment variables before starting/building:
 

@@ -7,6 +7,7 @@ import { injectQuery } from "@tanstack/angular-query-experimental";
 import { HeartPulse, LucideAngularModule, TriangleAlert } from "lucide-angular";
 import { SkeletonModule } from "primeng/skeleton";
 import { supabase, supabaseConfigured } from "../core/supabase.client";
+import { isDemoMode } from "../core/demo-session";
 import {
   EMERGENCY_DISCLAIMER,
   emptyBundle,
@@ -132,7 +133,7 @@ export class SharedPlanComponent {
     enabled: this.token().length > 0,
     retry: 0,
     queryFn: async (): Promise<PlanBundle | null> => {
-      if (!supabaseConfigured) throw new Error("The account service is not configured.");
+      if (!supabaseConfigured && !isDemoMode()) throw new Error("The account service is not configured.");
       const { data, error } = await supabase.rpc("get_shared_plan", {
         share_token: this.token(),
       });

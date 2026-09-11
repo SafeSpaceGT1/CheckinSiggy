@@ -4,6 +4,7 @@ import { Download, LucideAngularModule } from "lucide-angular";
 import { MessageService } from "primeng/api";
 import { ButtonModule } from "primeng/button";
 import { supabase } from "../core/supabase.client";
+import { isDemoMode } from "../core/demo-session";
 import { AuthService } from "../core/auth.service";
 import { RoleService } from "../core/role.service";
 import { MoodService } from "../core/mood.service";
@@ -166,6 +167,7 @@ export class ProfileComponent {
 
       const payload = {
         app: "Check-In with SIGGY",
+        ...(isDemoMode() ? { demo: true, notice: "Fictional sample data from the interactive demo." } : {}),
         exported_at: new Date().toISOString(),
         user: { id: user.id, email: user.email },
         data,
@@ -175,7 +177,7 @@ export class ProfileComponent {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `siggy-export-${format(new Date(), "yyyy-MM-dd")}.json`;
+      anchor.download = `siggy-${isDemoMode() ? "demo-" : ""}export-${format(new Date(), "yyyy-MM-dd")}.json`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -185,7 +187,7 @@ export class ProfileComponent {
       this.messages.add({
         severity: "success",
         summary: "Export ready",
-        detail: "Your data is downloading as JSON.",
+        detail: isDemoMode() ? "Your demo sample data is downloading as JSON." : "Your data is downloading as JSON.",
       });
     } catch (error) {
       this.feedback.trigger("error");

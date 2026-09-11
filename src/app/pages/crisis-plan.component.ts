@@ -33,6 +33,7 @@ import { CrisisPlanViewComponent } from "../ui/crisis-plan-view.component";
 import { CrisisFlowComponent } from "../ui/crisis-flow.component";
 import { BreathingRingComponent } from "../ui/breathing-ring.component";
 import { GroundingStepsComponent } from "../ui/grounding-steps.component";
+import { isDemoMode } from "../core/demo-session";
 
 @Component({
   selector: "app-crisis-plan",
@@ -188,7 +189,7 @@ import { GroundingStepsComponent } from "../ui/grounding-steps.component";
     </p-dialog>
 
     <p-dialog
-      header="Share your plan"
+      [header]="demo ? 'Preview plan sharing' : 'Share your plan'"
       [visible]="shareOpen()"
       (visibleChange)="shareOpen.set($event)"
       [modal]="true"
@@ -197,8 +198,13 @@ import { GroundingStepsComponent } from "../ui/grounding-steps.component";
       [style]="{ width: 'min(92vw, 440px)' }"
     >
       <p class="text-sm text-muted-foreground">
-        Create a read-only link for a therapist, family member, or friend. You can revoke it
-        anytime.
+        @if (demo) {
+          Demo links work only in this demo tab. Nothing is sent or published.
+          Create a link to try the read-only view, then revoke it anytime.
+        } @else {
+          Create a read-only link for a therapist, family member, or friend. You can revoke it
+          anytime.
+        }
       </p>
       <div class="mt-3 flex gap-2">
         @for (option of expiryOptions; track option.label) {
@@ -226,6 +232,12 @@ import { GroundingStepsComponent } from "../ui/grounding-steps.component";
               <div class="min-w-0 flex-1">
                 <p class="truncate text-xs font-medium">{{ shareUrl(share.token) }}</p>
                 <p class="text-[11px] text-muted-foreground">{{ expiryLabel(share) }}</p>
+                @if (demo) {
+                  <a
+                    [href]="shareUrl(share.token)"
+                    class="mt-1 inline-flex min-h-[44px] items-center rounded text-xs font-semibold text-accent-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >Open demo plan preview</a>
+                }
               </div>
               <button
                 type="button"
@@ -251,6 +263,7 @@ import { GroundingStepsComponent } from "../ui/grounding-steps.component";
   `,
 })
 export class CrisisPlanComponent {
+  readonly demo = isDemoMode();
   readonly icons = {
     LifeBuoy,
     Flower2,
@@ -350,14 +363,16 @@ export class CrisisPlanComponent {
     this.crisis.createShareMutation.mutate(this.expiry(), {
       onSuccess: (token) => {
         this.feedback.trigger("success");
-        this.copy(this.shareUrl(token), "Link created and copied");
+        this.copy(this.shareUrl(token), this.demo ? "Demo link created and copied" : "Link created and copied");
       },
       onError: (error) => this.fail(error),
     });
   }
 
   shareUrl(token: string): string {
-    return `${window.location.origin}/shared-plan/${token}`;
+    const url = new URL(`shared-plan/${encodeURIComponent(token)}`, document.baseURI);
+    if (this.demo) url.searchParams.set("demo", "1");
+    return url.href;
   }
 
   expiryLabel(share: PlanShare): string {
@@ -369,7 +384,10 @@ export class CrisisPlanComponent {
   async copy(url: string, summary = "Link copied") {
     try {
       await navigator.clipboard.writeText(url);
-      this.messages.add({ severity: "success", summary });
+      this.messages.add({
+        severity: "success", summary,
+        ...(this.demo ? { detail: "Works only in this demo tab. Nothing was sent or published." } : {}),
+      });
     } catch {
       this.messages.add({ severity: "info", summary: "Copy this link", detail: url, life: 10000 });
     }

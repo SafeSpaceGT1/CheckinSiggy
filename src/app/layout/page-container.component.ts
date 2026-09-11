@@ -1,4 +1,5 @@
 import { Component, computed, input } from "@angular/core";
+import { isDemoMode } from "../core/demo-session";
 
 type MaxWidth = "sm" | "md" | "lg" | "xl";
 
@@ -20,8 +21,9 @@ const WIDTHS: Record<MaxWidth, string> = {
   template: `<main [class]="classes()"><ng-content /></main>`,
 })
 export class PageContainerComponent {
+  private readonly demo = isDemoMode();
   readonly maxWidth = input<MaxWidth>("lg");
   readonly classes = computed(
-    () => `mx-auto w-full px-4 pb-44 pt-6 md:px-6 md:pb-16 md:pt-24 ${WIDTHS[this.maxWidth()]}`
+    () => `mx-auto w-full px-4 pb-44 pt-6 md:px-6 md:pb-16 ${this.demo ? "md:pt-6" : "md:pt-24"} ${WIDTHS[this.maxWidth()]}`
   );
 }
